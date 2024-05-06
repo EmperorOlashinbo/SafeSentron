@@ -1,6 +1,8 @@
 package com.group9.safesentron
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -11,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -28,6 +31,7 @@ class SignUpActivity : ComponentActivity() {
 
 @Composable
 fun SignUpForm() {
+    val context = LocalContext.current
     val auth = FirebaseAuth.getInstance()
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -115,9 +119,11 @@ fun SignUpForm() {
                     auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener { task ->
                         if (task.isSuccessful) {
                             signUpStatus = "Sign up successful. Redirecting..."
-                            // Navigate to another screen or dashboard as needed
+                            context.startActivity(Intent(context, DashboardActivity::class.java))
+                            (context as ComponentActivity).finish()
                         } else {
                             signUpStatus = "Sign up failed: ${task.exception?.localizedMessage}"
+                            Toast.makeText(context, "Signup Failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
                         }
                     }
                 } else {
