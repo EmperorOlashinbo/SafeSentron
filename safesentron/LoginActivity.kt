@@ -1,6 +1,10 @@
 package com.group9.safesentron
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -9,33 +13,32 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-
+import com.google.firebase.auth.FirebaseAuth
 
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val navController = rememberNavController()
-            LoginForm(navController)  // Assuming LoginForm is correctly set up as a composable
+            LoginForm()
         }
     }
 }
 
 @Composable
-fun LoginForm(navController: NavController) {
-    var username by remember { mutableStateOf("") }
+fun LoginForm() {
+    val context = LocalContext.current
+    val auth = FirebaseAuth.getInstance()
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisibility by remember { mutableStateOf(false) }
-    var loginError by remember { mutableStateOf(false) } // To handle login error messages
+    var loginStatus by remember { mutableStateOf("") }
+    var showPasswordResetDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -44,15 +47,15 @@ fun LoginForm(navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (loginError) {
-            Text("Invalid username or password", color = MaterialTheme.colorScheme.error)
+        if (loginStatus.isNotEmpty()) {
+            Text(loginStatus, color = if (loginStatus.startsWith("Login successful")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
             Spacer(modifier = Modifier.height(8.dp))
         }
 
         TextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Username") },
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -76,11 +79,14 @@ fun LoginForm(navController: NavController) {
         Spacer(modifier = Modifier.height(16.dp))
         Button(
             onClick = {
-                if (username == "admin" && password == "password") { // Simple credential check
-                    loginError = false
-                    navController.navigate("mainScreen") // Navigate to main screen on successful login
-                } else {
-                    loginError = true // Show error message on failed login
+                auth.signInWithEmailAndPassword(email, password).addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        loginStatus = "Login successful"
+                        context.startActivity(Intent(context, DashboardActivity::class.java))
+                        (context as Activity).finish()
+                    } else {
+                        loginStatus = "Login failed: ${task.exception?.localizedMessage}"
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -88,13 +94,58 @@ fun LoginForm(navController: NavController) {
             Text("Login", fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
         Spacer(modifier = Modifier.height(8.dp))
+        TextButton(onClick = { showPasswordResetDialog = true }) {
+            Text("Forgot password?", fontWeight = FontWeight.Medium)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
         TextButton(
             onClick = {
-                navController.navigate("signup") // Navigation to signup screen
+                context.startActivity(Intent(context, SignUpActivity::class.java))
             }
         ) {
             Text("Don't have an account yet? Sign up here", fontWeight = FontWeight.Medium)
         }
+
+        if (showPasswordResetDialog) {
+            PasswordResetDialog(email = email, onDismiss = { showPasswordResetDialog = false }, onEmailChange = { email = it }, auth = auth)
+        }
     }
 }
 
+@Composable
+fun PasswordResetDialog(email: String, onDismiss: () -> Unit, onEmailChange: (String) -> Unit, auth: FirebaseAuth) {
+    AlertDialog(
+        onDismissRequest = { onDismiss() },
+        title = { Text("Password Reset") },
+        text = {
+            Column {
+                Text("Enter your email address to reset your password.")
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = onEmailChange,
+                    label = { Text("Email") }
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    auth.sendPasswordResetEmail(email).addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            onDismiss()
+                        } else {
+                            onDismiss() // Consider handling errors or retry mechanisms
+                        }
+                    }
+                }) {
+                Text("Send")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
