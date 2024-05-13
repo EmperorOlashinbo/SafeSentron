@@ -1,9 +1,12 @@
 package com.group9.safesentron
 
+import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.util.Log
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.google.android.gms.location.Geofence
@@ -19,13 +22,19 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
         when (val geofenceTransition = geofencingEvent?.geofenceTransition) {
             Geofence.GEOFENCE_TRANSITION_ENTER -> {
-                notifyUser(context, "Geofence Entry Detected", "You have entered a designated area.")
+                notifyUser(
+                    context,
+                    "Geofence Entry Detected",
+                    "You have entered a designated area."
+                )
                 Log.d("GeofenceBroadcastReceiver", "Geofence Entry Triggered")
             }
+
             Geofence.GEOFENCE_TRANSITION_EXIT -> {
                 notifyUser(context, "Geofence Exit Detected", "You have left a designated area.")
                 Log.d("GeofenceBroadcastReceiver", "Geofence Exit Triggered")
             }
+
             else -> {
                 logError(context, "Unknown geofence transition: $geofenceTransition")
             }
@@ -38,8 +47,17 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
     }
 
     private fun notifyUser(context: Context, title: String, content: String) {
+        if (ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.e("GeofenceBroadcastReceiver", "Notification permission not granted")
+            return
+        }
+
         val notificationBuilder = NotificationCompat.Builder(context, context.getString(R.string.notification_channel_id))
-            .setSmallIcon(R.drawable.ic_notification) // Ensure you have this icon in your drawable resources
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(content)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -49,7 +67,6 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
     }
 
     private fun getNotificationId(): Int {
-        // This can be more sophisticated, e.g., based on specific geofence ids or user actions
         return (System.currentTimeMillis() % 10000).toInt()
     }
 }
