@@ -36,15 +36,15 @@ class PermissionCheckingActivity : ComponentActivity() {
         }
 
         setContent {
-            PermissionRequestScreen { requestLocationPermission() }
+            PermissionRequestScreen()
         }
     }
 
     @Composable
-    fun PermissionRequestScreen(requestPermission: () -> Unit) {
+    fun PermissionRequestScreen() {
         val context = LocalContext.current
         Column {
-            Button(onClick = requestPermission) {
+            Button(onClick = { requestLocationPermission() }) {
                 Text("Request Location Permission", fontSize = 18.sp)
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -57,14 +57,17 @@ class PermissionCheckingActivity : ComponentActivity() {
     }
 
     private fun requestLocationPermission() {
+        // This will automatically handle checking the permission and requesting if needed
         requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
     }
 
     private fun startLocationService() {
+        // Start your location service here
         startService(Intent(this, LocationTrackingService::class.java))
     }
 
     private fun handlePermissionDenied() {
+        // Display a toast message indicating that the permission was denied
         Toast.makeText(this, "Location permission denied. Some features may not be available.", Toast.LENGTH_LONG).show()
     }
 }
