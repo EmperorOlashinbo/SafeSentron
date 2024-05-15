@@ -11,13 +11,12 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
@@ -37,13 +36,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun readAndProcessQuestions() {
-        GlobalScope.launch(Dispatchers.IO) {
+        lifecycleScope.launch(Dispatchers.IO) {
             val assetManager: AssetManager = applicationContext.assets
             val inputStream = assetManager.open("age_qna.txt")
             val bufferedReader = BufferedReader(InputStreamReader(inputStream))
 
             var currentAgeGroup = ""
-            var currentQuestionsAndAnswers = mutableListOf<Pair<String, String>>()
+            val currentQuestionsAndAnswers = mutableListOf<Pair<String, String>>()
             var line: String?
 
             while (bufferedReader.readLine().also { line = it } != null) {
@@ -78,7 +77,6 @@ fun MainContent(
     selectedAgeGroup: MutableStateFlow<String>,
     questionsAndAnswersMap: MutableMap<String, List<Pair<String, String>>>
 ) {
-    val context = LocalContext.current
     val focusManager = LocalFocusManager.current
 
     var age by remember { mutableStateOf("") }
@@ -124,41 +122,46 @@ fun MainContent(
 
 @Composable
 fun QuestionAndAnswerSection(questionsAndAnswers: List<Pair<String, String>>) {
-    var currentQuestionIndex by remember { mutableStateOf(0) }
+    var currentQuestionIndex by remember { mutableIntStateOf(0) }
     var answer by remember { mutableStateOf("") }
-    val currentQuestion = questionsAndAnswers[currentQuestionIndex]
 
-    Column {
-        Text(text = "Question ${currentQuestionIndex + 1}: ${currentQuestion.first}")
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
-            value = answer,
-            onValueChange = { answer = it },
-            label = { Text("Your answer") },
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    val correctAnswer = currentQuestion.second
-                    if (answer.contains(correctAnswer, ignoreCase = true)) {
-                        // Correct answer
-                        // Move to the next question
-                        currentQuestionIndex++
-                        if (currentQuestionIndex >= questionsAndAnswers.size) {
-                            // End of questions
-                            // You can handle this as per your requirement
-                            // Maybe show a success message or navigate to another screen
+    if (questionsAndAnswers.isEmpty()) {
+        Text("No questions found", style = MaterialTheme.typography.body1)
+    } else {
+        val currentQuestion = questionsAndAnswers[currentQuestionIndex]
+
+        Column {
+            Text(text = "Question ${currentQuestionIndex + 1}: ${currentQuestion.first}")
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = answer,
+                onValueChange = { answer = it },
+                label = { Text("Your answer") },
+                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        val correctAnswer = currentQuestion.second
+                        if (answer.contains(correctAnswer, ignoreCase = true)) {
+                            // Correct answer
+                            // Move to the next question
+                            currentQuestionIndex++
+                            if (currentQuestionIndex >= questionsAndAnswers.size) {
+                                // End of questions
+                                // You can handle this as per your requirement
+                                // Maybe show a success message or navigate to another screen
+                            } else {
+                                answer = "" // Clear the answer for the next question
+                            }
                         } else {
-                            answer = "" // Clear the answer for the next question
+                            // Incorrect answer
+                            // You can handle this as per your requirement
+                            // Maybe show a message to try again or provide the correct answer
                         }
-                    } else {
-                        // Incorrect answer
-                        // You can handle this as per your requirement
-                        // Maybe show a message to try again or provide the correct answer
                     }
-                }
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }
 
