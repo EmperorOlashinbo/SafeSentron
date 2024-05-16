@@ -111,7 +111,10 @@ fun MainContent(
             if (ageGroup.isNotEmpty()) {
                 val questionsAndAnswers = questionsAndAnswersMap[ageGroup]
                 if (questionsAndAnswers != null) {
-                    QuestionAndAnswerSection(questionsAndAnswers)
+                    QuestionAndAnswerSection(
+                        questionsAndAnswers = questionsAndAnswers,
+                        onFinish = { /* Implement what should happen when all questions are answered */ }
+                    )
                 } else {
                     Text("No questions found for age group $ageGroup", style = MaterialTheme.typography.body1)
                 }
@@ -121,13 +124,15 @@ fun MainContent(
 }
 
 @Composable
-fun QuestionAndAnswerSection(questionsAndAnswers: List<Pair<String, String>>) {
+fun QuestionAndAnswerSection(
+    questionsAndAnswers: List<Pair<String, String>>,
+    onFinish: () -> Unit
+) {
     var currentQuestionIndex by remember { mutableIntStateOf(0) }
     var answer by remember { mutableStateOf("") }
+    var correctAnswersCount by remember { mutableIntStateOf(0) }
 
-    if (questionsAndAnswers.isEmpty()) {
-        Text("No questions found", style = MaterialTheme.typography.body1)
-    } else {
+    if (currentQuestionIndex < questionsAndAnswers.size) {
         val currentQuestion = questionsAndAnswers[currentQuestionIndex]
 
         Column {
@@ -140,28 +145,26 @@ fun QuestionAndAnswerSection(questionsAndAnswers: List<Pair<String, String>>) {
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(
                     onDone = {
+                        currentQuestionIndex++ // Move to the next question
+                        answer = "" // Clear the answer for the next question
+
                         val correctAnswer = currentQuestion.second
                         if (answer.contains(correctAnswer, ignoreCase = true)) {
                             // Correct answer
-                            // Move to the next question
-                            currentQuestionIndex++
-                            if (currentQuestionIndex >= questionsAndAnswers.size) {
-                                // End of questions
-                                // You can handle this as per your requirement
-                                // Maybe show a success message or navigate to another screen
-                            } else {
-                                answer = "" // Clear the answer for the next question
-                            }
-                        } else {
-                            // Incorrect answer
-                            // You can handle this as per your requirement
-                            // Maybe show a message to try again or provide the correct answer
+                            correctAnswersCount++
                         }
                     }
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
         }
+    } else {
+        // All questions answered, show result
+        Text(
+            text = "You got $correctAnswersCount out of ${questionsAndAnswers.size} answers correct.",
+            style = MaterialTheme.typography.body1
+        )
+        onFinish()
     }
 }
 
