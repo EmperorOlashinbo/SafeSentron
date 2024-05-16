@@ -2,6 +2,7 @@ package com.example.age_qna
 
 import android.content.res.AssetManager
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -46,6 +47,9 @@ class MainActivity : ComponentActivity() {
             var line: String?
 
             while (bufferedReader.readLine().also { line = it } != null) {
+                // Add logging to print out each line read from the file
+                Log.d("FileReading", "Line: $line")
+
                 if (line!!.startsWith("# age: ")) {
                     // Store previous age group questions and answers
                     if (currentAgeGroup.isNotEmpty()) {
