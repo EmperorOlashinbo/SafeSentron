@@ -3,8 +3,10 @@ package com.group9.safesentron
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -14,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -38,6 +41,7 @@ fun LoginForm() {
     var password by remember { mutableStateOf("") }
     var passwordVisibility by remember { mutableStateOf(false) }
     var loginStatus by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
     var showPasswordResetDialog by remember { mutableStateOf(false) }
 
     Column(
@@ -47,6 +51,13 @@ fun LoginForm() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.logo_safesentron),
+            contentDescription = "SafeSentron Logo",
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+
         if (loginStatus.isNotEmpty()) {
             Text(loginStatus, color = if (loginStatus.startsWith("Login successful")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
             Spacer(modifier = Modifier.height(8.dp))
@@ -60,6 +71,7 @@ fun LoginForm() {
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
+
         TextField(
             value = password,
             onValueChange = { password = it },
@@ -77,21 +89,29 @@ fun LoginForm() {
             }
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = {
-                auth.signInWithEmailAndPassword(email, password).addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        loginStatus = "Login successful"
-                        context.startActivity(Intent(context, DashboardActivity::class.java))
-                        (context as Activity).finish()
-                    } else {
-                        loginStatus = "Login failed: ${task.exception?.localizedMessage}"
+
+        if (isLoading) {
+            CircularProgressIndicator()
+        } else {
+            Button(
+                onClick = {
+                    isLoading = true
+                    auth.signInWithEmailAndPassword(email, password).addOnCompleteListener { task ->
+                        isLoading = false
+                        if (task.isSuccessful) {
+                            loginStatus = "Login successful"
+                            context.startActivity(Intent(context, DashboardActivity::class.java))
+                            (context as Activity).finish()
+                        } else {
+                            loginStatus = "Login failed: ${task.exception?.localizedMessage}"
+                            Toast.makeText(context, loginStatus, Toast.LENGTH_LONG).show()
+                        }
                     }
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Login", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Login", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            }
         }
         Spacer(modifier = Modifier.height(8.dp))
         TextButton(onClick = { showPasswordResetDialog = true }) {
@@ -114,8 +134,9 @@ fun LoginForm() {
 
 @Composable
 fun PasswordResetDialog(email: String, onDismiss: () -> Unit, onEmailChange: (String) -> Unit, auth: FirebaseAuth) {
+    val context = LocalContext.current
     AlertDialog(
-        onDismissRequest = { onDismiss() },
+        onDismissRequest = onDismiss,
         title = { Text("Password Reset") },
         text = {
             Column {
@@ -133,10 +154,11 @@ fun PasswordResetDialog(email: String, onDismiss: () -> Unit, onEmailChange: (St
                 onClick = {
                     auth.sendPasswordResetEmail(email).addOnCompleteListener { task ->
                         if (task.isSuccessful) {
-                            onDismiss()
+                            Toast.makeText(context, "Reset email sent", Toast.LENGTH_SHORT).show()
                         } else {
-                            onDismiss() // Consider handling errors or retry mechanisms
+                            Toast.makeText(context, "Failed to send reset email: ${task.exception?.message}", Toast.LENGTH_LONG).show()
                         }
+                        onDismiss()
                     }
                 }) {
                 Text("Send")
