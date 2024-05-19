@@ -61,6 +61,9 @@ fun MainLayout() {
                 val context = LocalContext.current
                 context.startActivity(Intent(context, GamifiedLearningActivity::class.java))
             }
+            composable("positive_affirmation") {
+                PositiveAffirmationScreen()
+            }
             composable("logout") {
                 FirebaseAuth.getInstance().signOut()
                 navController.navigate("login")
@@ -83,6 +86,9 @@ fun DrawerContent(navController: NavController, drawerState: DrawerState, scope:
     })
     DrawerItem(icon = Icons.Filled.Gamepad, label = "Gamified Learning", onClick = {
         navigateTo(navController, drawerState, scope, "gamified_learning")
+    })
+    DrawerItem(icon = Icons.Filled.Star, label = "Positive Affirmation", onClick = {
+        navigateTo(navController, drawerState, scope, "positive_affirmation")
     })
     DrawerItem(icon = Icons.Filled.Settings, label = "Settings", onClick = {
         navigateTo(navController, drawerState, scope, "settings")
@@ -146,3 +152,4 @@ fun LocationTrackingScreen() {
 fun SettingsScreen() {
     Text("Settings Screen", modifier = Modifier.fillMaxSize().padding(16.dp))
 }
+
