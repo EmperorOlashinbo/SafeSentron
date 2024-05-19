@@ -57,6 +57,10 @@ fun MainLayout() {
                 val context = LocalContext.current
                 context.startActivity(Intent(context, MoodTrackerActivity::class.java))
             }
+            composable("gamified_learning") {
+                val context = LocalContext.current
+                context.startActivity(Intent(context, GamifiedLearningActivity::class.java))
+            }
             composable("logout") {
                 FirebaseAuth.getInstance().signOut()
                 navController.navigate("login")
@@ -76,6 +80,9 @@ fun DrawerContent(navController: NavController, drawerState: DrawerState, scope:
     })
     DrawerItem(icon = Icons.Filled.Mood, label = "Mood Tracker", onClick = {
         navigateTo(navController, drawerState, scope, "mood_tracker")
+    })
+    DrawerItem(icon = Icons.Filled.Gamepad, label = "Gamified Learning", onClick = {
+        navigateTo(navController, drawerState, scope, "gamified_learning")
     })
     DrawerItem(icon = Icons.Filled.Settings, label = "Settings", onClick = {
         navigateTo(navController, drawerState, scope, "settings")
@@ -129,6 +136,7 @@ fun DrawerHeader() {
         ))
     }
 }
+
 @Composable
 fun LocationTrackingScreen() {
     Text("Location Tracking Screen", modifier = Modifier.fillMaxSize().padding(16.dp))
