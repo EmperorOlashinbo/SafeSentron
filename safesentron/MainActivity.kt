@@ -1,5 +1,6 @@
 package com.group9.safesentron
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -7,14 +8,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,13 +46,17 @@ fun MainLayout() {
         drawerState = drawerState,
         drawerContent = {
             DrawerContent(navController, drawerState, scope)
-        }
+        },
     ) {
         NavHost(navController = navController, startDestination = "dashboard") {
             composable("dashboard") { DashboardScreen() }
             composable("profile") { UserProfileScreen() }
             composable("location") { LocationTrackingScreen() }
             composable("settings") { SettingsScreen() }
+            composable("mood_tracker") {
+                val context = LocalContext.current
+                context.startActivity(Intent(context, MoodTrackerActivity::class.java))
+            }
             composable("logout") {
                 FirebaseAuth.getInstance().signOut()
                 navController.navigate("login")
@@ -69,6 +73,9 @@ fun DrawerContent(navController: NavController, drawerState: DrawerState, scope:
     })
     DrawerItem(icon = Icons.Filled.Map, label = "Location Tracking", onClick = {
         navigateTo(navController, drawerState, scope, "location")
+    })
+    DrawerItem(icon = Icons.Filled.Mood, label = "Mood Tracker", onClick = {
+        navigateTo(navController, drawerState, scope, "mood_tracker")
     })
     DrawerItem(icon = Icons.Filled.Settings, label = "Settings", onClick = {
         navigateTo(navController, drawerState, scope, "settings")
@@ -122,7 +129,6 @@ fun DrawerHeader() {
         ))
     }
 }
-
 @Composable
 fun LocationTrackingScreen() {
     Text("Location Tracking Screen", modifier = Modifier.fillMaxSize().padding(16.dp))
