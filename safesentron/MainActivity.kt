@@ -1,60 +1,60 @@
 package com.group9.safesentron
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.content.Context
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        FirebaseApp.initializeApp(this)
-        createNotificationChannel()
         setContent {
-            AppNavigation()
-        }
-    }
-
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = getString(R.string.channel_name)
-            val descriptionText = getString(R.string.channel_description)
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(getString(R.string.notification_channel_id), name, importance).apply {
-                description = descriptionText
-            }
-            val notificationManager: NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+            MainLayout()
         }
     }
 }
 
 @Composable
-fun AppNavigation() {
+fun MainLayout() {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = "mainScreen") {
-        composable("mainScreen") { MainScreen(navController) }
-        composable("login") { LoginForm() }
-        composable("signup") { SignUpForm() }
-        composable("userProfileScreen") {
-            val user = FirebaseAuth.getInstance().currentUser
-            if (user != null) {
-                UserProfileScreen()
-            } else {
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            DrawerContent(navController, drawerState, scope)
+        }
+    ) {
+        NavHost(navController = navController, startDestination = "dashboard") {
+            composable("dashboard") { DashboardScreen() }
+            composable("profile") { UserProfileScreen() }
+            composable("location") { LocationTrackingScreen() }
+            composable("settings") { SettingsScreen() }
+            composable("logout") {
+                FirebaseAuth.getInstance().signOut()
                 navController.navigate("login")
             }
         }
@@ -62,22 +62,73 @@ fun AppNavigation() {
 }
 
 @Composable
-fun MainScreen(navController: androidx.navigation.NavController) {
+fun DrawerContent(navController: NavController, drawerState: DrawerState, scope: CoroutineScope) {
+    DrawerHeader()
+    DrawerItem(icon = Icons.Filled.Person, label = "Profile", onClick = {
+        navigateTo(navController, drawerState, scope, "profile")
+    })
+    DrawerItem(icon = Icons.Filled.Map, label = "Location Tracking", onClick = {
+        navigateTo(navController, drawerState, scope, "location")
+    })
+    DrawerItem(icon = Icons.Filled.Settings, label = "Settings", onClick = {
+        navigateTo(navController, drawerState, scope, "settings")
+    })
+    DrawerItem(icon = Icons.AutoMirrored.Filled.Logout, label = "Logout", onClick = {
+        FirebaseAuth.getInstance().signOut()
+        navController.navigate("login") {
+            popUpTo(navController.graph.startDestinationId) { inclusive = true }
+        }
+    })
+}
+
+fun navigateTo(navController: NavController, drawerState: DrawerState, scope: CoroutineScope, route: String) {
+    scope.launch {
+        drawerState.close()
+        navController.navigate(route)
+    }
+}
+
+@Composable
+fun DrawerItem(icon: ImageVector, label: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = label)
+        Spacer(Modifier.width(16.dp))
+        Text(text = label)
+    }
+}
+
+@Composable
+fun DrawerHeader() {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Welcome to SafeSentron", style = MaterialTheme.typography.titleLarge)
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { navController.navigate("login") }, modifier = Modifier.fillMaxWidth()) {
-            Text("Login")
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = { navController.navigate("signup") }, modifier = Modifier.fillMaxWidth()) {
-            Text("Sign Up")
-        }
+        Icon(
+            painter = painterResource(id = R.drawable.logo_safesentron),
+            contentDescription = "App Logo",
+            modifier = Modifier.size(100.dp)
+        )
+        Text(text = "SafeSentron", style = MaterialTheme.typography.bodyLarge.copy(
+            fontWeight = FontWeight.Medium,
+            fontSize = 20.sp,
+            lineHeight = 28.sp
+        ))
     }
+}
+
+@Composable
+fun LocationTrackingScreen() {
+    Text("Location Tracking Screen", modifier = Modifier.fillMaxSize().padding(16.dp))
+}
+
+@Composable
+fun SettingsScreen() {
+    Text("Settings Screen", modifier = Modifier.fillMaxSize().padding(16.dp))
 }
